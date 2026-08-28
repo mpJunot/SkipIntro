@@ -1,4 +1,4 @@
-CrunchySkip — Firefox build
+SkipIntro — Firefox build
 ============================
 
 Load temporarily (development)
@@ -13,7 +13,7 @@ Publish on addons.mozilla.org (AMO)
 ------------------------------------
 1. Zip the contents of this firefox/ folder (manifest.json at the root of the zip).
 2. In manifest.json, change browser_specific_settings.gecko.id to a unique value
-   in email form, e.g. yourname@crunchyskip — required for signing.
+   in email form, e.g. yourname@skipintro — required for signing.
 
 Sync from Chrome / root folder
 -------------------------------
