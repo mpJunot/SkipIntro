@@ -1,4 +1,4 @@
-# SkipIntro
+# SkipIntro v1.1.0
 
 Clique automatiquement « Skip Intro » / « Skip Credits » / « Épisode suivant » sur
 **Crunchyroll**, **Netflix** et **Disney+**.
@@ -11,10 +11,14 @@ Clique automatiquement « Skip Intro » / « Skip Credits » / « Épisode suiva
 **Firefox** — `about:debugging#/runtime/this-firefox` → « Charger un module
 temporaire » → sélectionner `firefox/manifest.json`. Firefox 109+ requis.
 
-Après un `git pull`, recharger l'extension (bouton ↻) **et** rafraîchir l'onglet du
-lecteur. Le content script déjà injecté devient orphelin au rechargement de
-l'extension : il n'écoute plus `chrome.storage`, donc les options du popup semblent
-sans effet tant que l'onglet n'a pas été rafraîchi.
+Après un `git pull`, recharger l'extension (bouton ↻) **puis** rafraîchir l'onglet du
+lecteur, dans cet ordre. Le popup est relu à chaque ouverture, pas le content script :
+celui déjà injecté garde l'ancien code et n'écoute pas les nouvelles options, donc
+elles semblent sans effet. La console de l'onglet dit quelle version tourne :
+
+```
+[SkipIntro] Ready — v1.1.0 — https://www.netflix.com/watch/…
+```
 
 ## Options (popup)
 
@@ -85,3 +89,11 @@ réduction.
 Accent mint `#34E0A1`, fond `#0B0D10`, surfaces `#14181F` sans bordure, champs
 `#191F29`, texte `#F2F4F7` / `#7C8595`, rayon 12 px, micro-labels 9 px uppercase
 tracés à 0.12em. Les tokens vivent dans `popup/popup.css`.
+
+## Versions
+
+**1.1.0** — Disney+ (`button.skip__button`, libellé lu dans le texte du bouton),
+direction artistique Signal (accent mint, nouvelle icône), option d'affichage du
+bouton flottant, version affichée dans le log du content script.
+
+**1.0.0** — Crunchyroll et Netflix, délai avant clic, URLs exclues.
