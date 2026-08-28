@@ -1,0 +1,245 @@
+:root {
+  --primary-color: #e03f4f;
+  --background-color: #10131b;
+  --card-background-color: #171b24;
+  --text-color: #e8e8ed;
+  --hint-color: #9b9ba8;
+  --border-color: #3a3a44;
+  --border-radius: 10px;
+  --gap: 10px;
+  --switch-width: 40px;
+  --switch-height: 22px;
+  --switch-knob-size: 16px;
+  --switch-knob-offset: 3px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+li,
+ol,
+ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  font-size: 13px;
+  color: var(--text-color);
+  background: var(--background-color);
+  min-width: 280px;
+}
+
+main {
+  padding: 14px 16px 16px;
+}
+
+h1 {
+  margin: 0 0 8px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--primary-color);
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.hint {
+  margin: 0 0 14px;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--hint-color);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gap);
+  margin-bottom: 12px;
+  line-height: 1.35;
+}
+
+.card {
+  min-height: 52px;
+  padding: 12px 14px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  background: var(--card-background-color);
+}
+
+.card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gap);
+  width: 100%;
+}
+
+.card-head h4 {
+  margin: 0;
+  line-height: 1.2;
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.row.delay {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  cursor: default;
+}
+
+.row.delay span {
+  color: var(--hint-color);
+  font-size: 11px;
+}
+
+.switch {
+  position: relative;
+  flex: 0 0 auto;
+  display: inline-block;
+  width: var(--switch-width);
+  height: var(--switch-height);
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  inset: 0;
+  background-color: #ccc;
+  transition: 0.25s ease;
+}
+
+.slider:before {
+  position: absolute;
+  content: '';
+  height: var(--switch-knob-size);
+  width: var(--switch-knob-size);
+  left: var(--switch-knob-offset);
+  bottom: var(--switch-knob-offset);
+  background-color: white;
+  transition: 0.25s ease;
+}
+
+.switch input:checked + .slider {
+  background-color: var(--primary-color);
+}
+
+.switch input:focus-visible + .slider {
+  box-shadow: 0 0 0 3px rgba(224, 63, 79, 0.25);
+}
+
+.switch input:checked + .slider:before {
+  transform: translateX(
+    calc(
+      var(--switch-width) - var(--switch-knob-size) -
+        (var(--switch-knob-offset) * 2)
+    )
+  );
+}
+
+.slider.round {
+  border-radius: calc(var(--switch-height) / 2);
+}
+
+.slider.round:before {
+  border-radius: 50%;
+}
+
+.exclusion {
+  gap: 6px;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.exclusion-list {
+  display: flex;
+  overflow-y: auto;
+  flex-direction: column;
+  gap: var(--gap);
+  padding: 10px;
+  max-height: 200px;
+}
+
+.list-item {
+  list-style: none;
+  display: flex;
+  font-size: small;
+  align-items: center;
+  color: var(--hint-color);
+  justify-content: space-between;
+  gap: 6px;
+  min-width: 0;
+}
+
+.list-item span {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.list-item button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  border-radius: var(--border-radius);
+  color: var(--text-color);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.list-item button:hover {
+  background: var(--primary-color);
+}
+
+#add-url {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 8px 10px;
+  outline: none;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--card-background-color);
+  color: var(--text-color);
+  font-size: 13px;
+}
+
+#add-url:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+#skipDelayMs {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  background: var(--card-background-color);
+  color: var(--text-color);
+  font-size: 13px;
+  outline: none;
+}
+
+#skipDelayMs:focus {
+  border-color: var(--primary-color);
+}

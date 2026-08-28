@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CrunchySkip</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <main class="container">
+      <h1>CrunchySkip</h1>
+      <p class="hint">
+        Works on the Crunchyroll (Premium), Netflix and Disney+ web players when the episode offers Skip Intro / Skip Recap / Skip Credits / Next Episode.
+      </p>
+      <div class="card intro">
+        <div class="card-head">
+          <h4>Auto skip intro</h4>
+          <label class="switch">
+            <input type="checkbox" id="skipIntro" placeholder="button.skip-intro" />
+            <span class="slider round"></span>
+          </label>
+        </div>
+      </div>
+      <div class="card credits">
+        <div class="card-head">
+          <h4>Auto skip credits / ending</h4>
+          <label class="switch">
+            <input type="checkbox" id="skipCredits" placeholder="button.skip-credits" />
+            <span class="slider round"></span>
+          </label>
+        </div>
+      </div>
+      <label class="row delay">
+        <span>Delay before click (ms)</span>
+        <input type="number" id="skipDelayMs" min="0" max="10000" step="100" />
+      </label>
+      <div class="card exclusion">
+        <h4>Excluded URLs</h4>
+        <input type="text" id="add-url" placeholder="https://www.netflix.com/watch/..." />
+        <li class="exclusion-list" id="excludedUrls"></li>
+      </div>
+    </main>
+    <script src="popup.js"></script>
+  </body>
+</html>

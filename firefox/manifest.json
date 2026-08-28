@@ -1,0 +1,45 @@
+{
+  "manifest_version": 3,
+  "name": "CrunchySkip",
+  "version": "1.0.0",
+  "description": "Automatically clicks Skip Intro and Skip Credits on the Crunchyroll, Netflix and Disney+ web players.",
+  "permissions": ["storage", "tabs"],
+  "host_permissions": [
+    "https://*.crunchyroll.com/*",
+    "https://crunchyroll.com/*",
+    "https://*.netflix.com/*",
+    "https://*.disneyplus.com/*"
+  ],
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*.crunchyroll.com/*",
+        "https://crunchyroll.com/*",
+        "https://*.netflix.com/*",
+        "https://*.disneyplus.com/*"
+      ],
+      "js": ["content/player.js"],
+      "all_frames": true,
+      "run_at": "document_idle"
+    }
+  ],
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "crunchyskip@crunchyskip.local",
+      "strict_min_version": "109.0"
+    }
+  }
+}

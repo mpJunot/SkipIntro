@@ -1,0 +1,24 @@
+CrunchySkip — Firefox build
+============================
+
+Load temporarily (development)
+--------------------------------
+1. Open Firefox and go to: about:debugging#/runtime/this-firefox
+2. Click "Load Temporary Add-on…"
+3. Select this folder’s manifest.json file (firefox/manifest.json)
+
+Requires Firefox 109+ (Manifest V3).
+
+Publish on addons.mozilla.org (AMO)
+------------------------------------
+1. Zip the contents of this firefox/ folder (manifest.json at the root of the zip).
+2. In manifest.json, change browser_specific_settings.gecko.id to a unique value
+   in email form, e.g. yourname@crunchyskip — required for signing.
+
+Sync from Chrome / root folder
+-------------------------------
+After editing files in the project root (parent folder), run from the repo root:
+
+  ./sync-firefox.sh
+
+This copies content/, popup/, icons/, and manifest.json into firefox/.
