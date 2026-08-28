@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  const TAG = '[CrunchySkip]';
+  const TAG = '[SkipIntro]';
   console.log(TAG, 'Content script loaded!');
 
   const DEFAULTS = {
@@ -269,13 +269,13 @@
           height: 56px !important;
           border: none !important;
           border-radius: 50% !important;
-          background: #E03F4F !important;
-          color: #fff !important;
+          background: #34E0A1 !important;
+          color: #0B0D10 !important;
           font-size: 28px !important;
           line-height: 1 !important;
           font-weight: 600 !important;
           cursor: pointer !important;
-          box-shadow: 0 12px 28px rgba(224, 63, 79, 0.32) !important;
+          box-shadow: 0 12px 28px rgba(52, 224, 161, 0.32) !important;
           z-index: 10000 !important;
           transition: box-shadow 0.2s ease, transform 0.2s ease !important;
           display: flex !important;
@@ -286,11 +286,11 @@
         }
         .crunchyskip-fab:hover {
           transform: scale(1.08) !important;
-          box-shadow: 0 16px 36px rgba(224, 63, 79, 0.4) !important;
+          box-shadow: 0 16px 36px rgba(52, 224, 161, 0.4) !important;
         }
         .crunchyskip-fab:focus-visible {
           outline: none !important;
-          box-shadow: 0 0 0 4px rgba(224, 63, 79, 0.3), 0 12px 28px rgba(224, 63, 79, 0.32) !important;
+          box-shadow: 0 0 0 4px rgba(52, 224, 161, 0.3), 0 12px 28px rgba(52, 224, 161, 0.32) !important;
         }
         .crunchyskip-fab:active {
           transform: scale(0.95) !important;
@@ -302,7 +302,7 @@
       fab.className = 'crunchyskip-fab';
       fab.type = 'button';
       fab.textContent = '+';
-      fab.title = 'Add current page to CrunchySkip exclusions';
+      fab.title = 'Add current page to SkipIntro exclusions';
       fab.addEventListener('click', () => {
         const currentUrl = location.href.replace(/#.*$/, '');
         if (currentUrl && !settings.EXCLUDE_URLS.includes(currentUrl)) {

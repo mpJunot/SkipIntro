@@ -33,6 +33,7 @@ function addExcludeUrl(items, url) {
 
 function renderList(listEl, items) {
   listEl.innerHTML = '';
+  document.getElementById('excludedCount').textContent = String(items.length);
   items.forEach((item) => {
     const li = document.createElement('li');
     li.classList.add('list-item');
