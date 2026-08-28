@@ -12,7 +12,9 @@ Clique automatiquement « Skip Intro » / « Skip Credits » / « Épisode suiva
 temporaire » → sélectionner `firefox/manifest.json`. Firefox 109+ requis.
 
 Après un `git pull`, recharger l'extension (bouton ↻) **et** rafraîchir l'onglet du
-lecteur : le content script n'est pas rechargé à chaud.
+lecteur. Le content script déjà injecté devient orphelin au rechargement de
+l'extension : il n'écoute plus `chrome.storage`, donc les options du popup semblent
+sans effet tant que l'onglet n'a pas été rafraîchi.
 
 ## Options (popup)
 
@@ -49,6 +51,18 @@ modification de `manifest.json`, `content/`, `popup/` ou `icons/` :
 ```sh
 ./sync-firefox.sh
 ```
+
+### Test
+
+`test/fab-toggle.html` vérifie que le FAB réagit à un changement de `showFab` sans
+rechargement, avec un `chrome.storage` stubé :
+
+```sh
+/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --headless=new \
+  --disable-gpu --virtual-time-budget=3000 --dump-dom test/fab-toggle.html | grep result
+```
+
+Attendu : `injected=true | visible_default=true | hidden_after_off=true | visible_after_on=true`
 
 ### Icône
 

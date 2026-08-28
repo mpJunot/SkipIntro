@@ -1,0 +1,50 @@
+<!doctype html>
+<!--
+  Vérifie que le FAB réagit à chrome.storage.onChanged sans rechargement.
+  Lancer :
+    /Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --headless=new \
+      --disable-gpu --virtual-time-budget=3000 --dump-dom test/fab-toggle.html | grep result
+  Attendu : injected=true | visible_default=true | hidden_after_off=true | visible_after_on=true
+-->
+<meta charset="utf-8" />
+<body>
+  <script>
+    // stub minimal de l'API storage : set() rejoue les listeners, comme Chrome
+    const listeners = [];
+    const stored = { showFab: true };
+    window.chrome = {
+      storage: {
+        sync: {
+          get: (defaults, cb) => cb({ ...defaults, ...stored }),
+          set: (obj) => {
+            const changes = {};
+            Object.keys(obj).forEach((k) => (changes[k] = { newValue: obj[k] }));
+            Object.assign(stored, obj);
+            listeners.forEach((fn) => fn(changes, 'sync'));
+          },
+        },
+        onChanged: { addListener: (fn) => listeners.push(fn) },
+      },
+    };
+  </script>
+  <script src="../content/player.js"></script>
+  <script>
+    setTimeout(() => {
+      const fab = document.querySelector('.crunchyskip-fab');
+      const shown = () => getComputedStyle(fab).display !== 'none';
+      const out = [];
+      out.push('injected=' + !!fab);
+      out.push('visible_default=' + shown());
+      chrome.storage.sync.set({ showFab: false });
+      out.push('hidden_after_off=' + !shown());
+      chrome.storage.sync.set({ showFab: true });
+      out.push('visible_after_on=' + shown());
+
+      const pre = document.createElement('pre');
+      pre.id = 'result';
+      pre.textContent = out.join(' | ');
+      pre.style.color = out.every((r) => r.endsWith('true')) ? 'green' : 'red';
+      document.body.appendChild(pre);
+    }, 300);
+  </script>
+</body>
