@@ -20,11 +20,12 @@ lecteur : le content script n'est pas rechargé à chaud.
 | --- | --- |
 | Auto skip intro | Clique intro / recap / opening |
 | Auto skip credits | Clique générique / ending / épisode suivant |
+| Floating exclude button | Affiche ou masque le bouton « + » sur le lecteur |
 | Delay before click | Attente avant le clic, 0–10000 ms |
 | Excluded URLs | Pages où l'extension ne fait rien |
 
 Le bouton flottant mint « + » en bas à droite du lecteur ajoute la page courante aux
-exclusions en un clic.
+exclusions en un clic ; il se masque depuis le popup, sans recharger la page.
 
 ## Comment ça marche
 

@@ -8,10 +8,12 @@
     skipIntro: true,
     skipCredits: true,
     skipDelayMs: 0,
+    showFab: true,
     EXCLUDE_URLS: [],
   };
 
   let settings = { ...DEFAULTS };
+  let fabEl = null;
   let cooldownUntil = 0;
   let pendingSkipTimer = null;
   let pendingSkipKind = null;
@@ -295,6 +297,9 @@
         .crunchyskip-fab:active {
           transform: scale(0.95) !important;
         }
+        .crunchyskip-fab--off {
+          display: none !important;
+        }
       `;
       document.head.appendChild(style);
 
@@ -314,9 +319,15 @@
           }, 1500);
         }
       });
+      fabEl = fab;
+      applyFabVisibility();
       document.body.appendChild(fab);
     }
   });
+
+  function applyFabVisibility() {
+    if (fabEl) fabEl.classList.toggle('crunchyskip-fab--off', !settings.showFab);
+  }
 
   function tick() {
     const currentUrl = location.href;
@@ -341,5 +352,6 @@
     Object.keys(changes).forEach((k) => {
       if (k in DEFAULTS) settings[k] = changes[k].newValue;
     });
+    if ('showFab' in changes) applyFabVisibility();
   });
 })();

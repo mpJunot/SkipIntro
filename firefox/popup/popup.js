@@ -2,6 +2,7 @@ const DEFAULTS = {
   skipIntro: true,
   skipCredits: true,
   skipDelayMs: 0,
+  showFab: true,
   EXCLUDE_URLS: [],
 };
 
@@ -65,18 +66,24 @@ document.addEventListener('DOMContentLoaded', async () => {
   const skipIntro = document.getElementById('skipIntro');
   const skipCredits = document.getElementById('skipCredits');
   const skipDelayMs = document.getElementById('skipDelayMs');
+  const showFab = document.getElementById('showFab');
   const excludeUrls = document.getElementById('add-url');
   const excludeList = document.getElementById('excludedUrls');
 
   skipIntro.checked = data.skipIntro !== false;
   skipCredits.checked = data.skipCredits !== false;
   skipDelayMs.value = String(Math.max(0, Number(data.skipDelayMs) || 0));
+  showFab.checked = data.showFab !== false;
 
   skipIntro.addEventListener('change', () => {
     storageSet({ skipIntro: skipIntro.checked });
   });
   skipCredits.addEventListener('change', () => {
     storageSet({ skipCredits: skipCredits.checked });
+  });
+
+  showFab.addEventListener('change', () => {
+    storageSet({ showFab: showFab.checked });
   });
 
   skipDelayMs.addEventListener('change', () => {
