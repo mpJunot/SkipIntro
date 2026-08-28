@@ -241,7 +241,12 @@
   }
 
   loadSettings().then(() => {
-    console.log(TAG, 'Ready —', location.href);
+    console.log(
+      TAG,
+      'Ready — v' + chrome.runtime.getManifest().version,
+      '—',
+      location.href
+    );
     console.log(TAG, 'Current settings:', settings);
     tick();
     const obs = new MutationObserver(() => tick());
