@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "SkipIntro",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Automatically clicks Skip Intro and Skip Credits on the Crunchyroll, Netflix and Disney+ web players.",
   "permissions": ["storage", "tabs"],
   "host_permissions": [
@@ -10,6 +10,10 @@
     "https://*.netflix.com/*",
     "https://*.disneyplus.com/*"
   ],
+  "background": {
+    "service_worker": "background/service-worker.js",
+    "scripts": ["background/service-worker.js"]
+  },
   "action": {
     "default_popup": "popup/popup.html",
     "default_icon": {

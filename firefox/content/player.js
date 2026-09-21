@@ -7,6 +7,7 @@
   const DEFAULTS = {
     skipIntro: true,
     skipCredits: true,
+    keepFullscreen: true,
     skipDelayMs: 0,
     showFab: true,
     EXCLUDE_URLS: [],
@@ -18,6 +19,7 @@
   let pendingSkipTimer = null;
   let pendingSkipKind = null;
   let lastDetectLogKey = null;
+  let lastFullscreenEl = null;
 
   function logDetected(kind, el, detail) {
     const key = `${kind}|${detail}|${el ? el.tagName : ''}`;
@@ -87,14 +89,22 @@
   // ponytail: Netflix has no aria-label on its skip buttons, but data-uia
   // ("player-skip-intro", "player-skip-recap", "next-episode-seamless-button")
   // reads like a label, so the existing classifier handles it as-is.
-  // Disney+ has neither: its button is .skip__button and the label is the
-  // visible text ("SKIP INTRO" / "SKIP RECAP" / "SKIP CREDITS"), so
-  // textContent is the last fallback — it only applies to those buttons.
+  // Disney+ has neither: the label is the visible localized text
+  // ("PASSER L'INTRO" / "SKIP RECAP"), so textContent is the last fallback.
+  // Its current player hides the button two shadow roots deep
+  // (<skip-overlay> → <skip-button> → <button>), out of querySelector's
+  // reach; .skip__button is the old light-DOM player.
   function listSkipButtons() {
     const out = [];
     const sel =
       'button[aria-label], button[data-uia], [data-uia][role="button"], button.skip__button';
-    document.querySelectorAll(sel).forEach((btn) => {
+    const candidates = [...document.querySelectorAll(sel)];
+    const dpBtn = document
+      .querySelector('skip-overlay')
+      ?.shadowRoot?.querySelector('skip-button')
+      ?.shadowRoot?.querySelector('button');
+    if (dpBtn) candidates.push(dpBtn);
+    candidates.forEach((btn) => {
       if (!isVisible(btn)) return;
       const raw = (
         btn.getAttribute('aria-label') ||
@@ -252,6 +262,9 @@
     const obs = new MutationObserver(() => tick());
     obs.observe(document.documentElement, { childList: true, subtree: true });
     setInterval(tick, 800);
+    document.addEventListener('fullscreenchange', onFullscreenChange);
+    document.addEventListener('click', preemptFullscreen, true);
+    document.addEventListener('dblclick', preemptFullscreen, true);
 
     if (!document.body) {
       const waitForBody = setInterval(() => {
@@ -332,6 +345,62 @@
 
   function applyFabVisibility() {
     if (fabEl) fabEl.classList.toggle('crunchyskip-fab--off', !settings.showFab);
+  }
+
+  function isFullscreenControl(el) {
+    if (!(el instanceof Element)) return false;
+    const raw = (
+      el.getAttribute('aria-label') ||
+      el.getAttribute('data-uia') ||
+      el.getAttribute('title') ||
+      ''
+    ).trim();
+    if (!raw) return false;
+    const upper = normalizeLabel(raw);
+    return (
+      upper.includes('FULL SCREEN') ||
+      upper.includes('FULLSCREEN') ||
+      upper.includes('PLEIN ECRAN')
+    );
+  }
+
+  // ponytail: the spec drops fullscreen as soon as the fullscreen element
+  // leaves the DOM, and Disney+ re-mounts its player container on every
+  // episode change. Re-entering afterwards is impossible: requestFullscreen()
+  // doesn't just need transient activation, it *consumes* it, so by the time
+  // fullscreenchange fires the player has already spent the click.
+  // So claim the click first, in the capture phase — we take fullscreen on
+  // documentElement, which no SPA navigation removes, and the player's own
+  // request is the one left without activation.
+  function preemptFullscreen(e) {
+    if (!settings.keepFullscreen) return;
+    // Already fullscreen means this click is the user leaving; let them.
+    if (document.fullscreenElement) return;
+    const path = e.composedPath();
+    const wanted =
+      e.type === 'dblclick'
+        ? path.some((el) => el instanceof Element && el.tagName === 'VIDEO')
+        : path.some(isFullscreenControl);
+    if (!wanted) return;
+    document.documentElement.requestFullscreen().catch((err) => {
+      console.log(TAG, 'Fullscreen preempt refused —', err && err.message);
+    });
+  }
+
+  // Fallback for the gestures preemption can't claim (the F shortcut, a
+  // control we failed to recognise): a fullscreen element that is gone from
+  // the document was torn down by the page, not dismissed by the user, and
+  // only the extension APIs can restore fullscreen without a gesture.
+  function onFullscreenChange() {
+    const el = document.fullscreenElement;
+    if (el) {
+      lastFullscreenEl = el;
+      return;
+    }
+    const dropped = lastFullscreenEl;
+    lastFullscreenEl = null;
+    if (!settings.keepFullscreen || !dropped || dropped.isConnected) return;
+    chrome.runtime.sendMessage({ type: 'restoreFullscreen' });
   }
 
   function tick() {

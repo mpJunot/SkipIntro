@@ -1,0 +1,43 @@
+<!doctype html>
+<!--
+  Vérifie que le bouton Disney+ caché dans le shadow DOM
+  (<skip-overlay> → <skip-button> → <button>) est cliqué.
+  Lancer :
+    /Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --headless=new \
+      --disable-gpu --virtual-time-budget=3000 --dump-dom test/disney-skip.html | grep result
+  Attendu : intro_clicked=true
+-->
+<meta charset="utf-8" />
+<body>
+  <video></video>
+  <skip-overlay></skip-overlay>
+  <script>
+    window.chrome = {
+      runtime: { getManifest: () => ({ version: 'test' }) },
+      storage: {
+        sync: { get: (defaults, cb) => cb({ ...defaults }), set: () => {} },
+        onChanged: { addListener: () => {} },
+      },
+    };
+
+    // reproduit la structure du lecteur Disney+ actuel
+    const overlayRoot = document.querySelector('skip-overlay').attachShadow({ mode: 'open' });
+    const skipButton = document.createElement('skip-button');
+    overlayRoot.appendChild(skipButton);
+    const btn = document.createElement('button');
+    btn.textContent = "Passer l'intro";
+    skipButton.attachShadow({ mode: 'open' }).appendChild(btn);
+    let clicked = false;
+    btn.addEventListener('click', () => (clicked = true));
+  </script>
+  <script src="../content/player.js"></script>
+  <script>
+    setTimeout(() => {
+      const pre = document.createElement('pre');
+      pre.id = 'result';
+      pre.textContent = 'intro_clicked=' + clicked;
+      pre.style.color = clicked ? 'green' : 'red';
+      document.body.appendChild(pre);
+    }, 1000);
+  </script>
+</body>

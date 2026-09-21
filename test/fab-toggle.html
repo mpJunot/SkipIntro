@@ -13,6 +13,7 @@
     const listeners = [];
     const stored = { showFab: true };
     window.chrome = {
+      runtime: { getManifest: () => ({ version: 'test' }) },
       storage: {
         sync: {
           get: (defaults, cb) => cb({ ...defaults, ...stored }),

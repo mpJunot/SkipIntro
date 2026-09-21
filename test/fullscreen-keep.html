@@ -1,0 +1,114 @@
+<!doctype html>
+<!--
+  Vérifie les deux moitiés du maintien du plein écran : la préemption du clic
+  sur le bouton plein écran, et le repli qui ne se déclenche que si la page a
+  démonté l'élément (pas si l'utilisateur est sorti lui-même).
+  Lancer :
+    /Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --headless=new \
+      --disable-gpu --virtual-time-budget=3000 --dump-dom test/fullscreen-keep.html | grep result
+  Attendu : preempt_on_button=true | preempt_on_dblclick=true | ignores_other_click=true |
+            ignores_exit_click=true | fallback_on_teardown=true | silent_on_user_exit=true |
+            setting_off=true
+-->
+<meta charset="utf-8" />
+<body>
+  <div id="player">
+    <video></video>
+    <button id="fs" aria-label="Plein écran">⛶</button>
+    <button id="mute" aria-label="Couper le son">🔇</button>
+  </div>
+  <script>
+    const listeners = [];
+    const stored = { keepFullscreen: true };
+    let messages = [];
+    window.chrome = {
+      runtime: {
+        getManifest: () => ({ version: 'test' }),
+        sendMessage: (msg) => messages.push(msg),
+      },
+      storage: {
+        sync: {
+          get: (defaults, cb) => cb({ ...defaults, ...stored }),
+          set: (obj) => {
+            const changes = {};
+            Object.keys(obj).forEach((k) => (changes[k] = { newValue: obj[k] }));
+            Object.assign(stored, obj);
+            listeners.forEach((fn) => fn(changes, 'sync'));
+          },
+        },
+        onChanged: { addListener: (fn) => listeners.push(fn) },
+      },
+    };
+
+    // le plein écran réel exige un geste utilisateur, hors de portée d'une page
+    // headless : on stube l'élément courant et la demande de préemption
+    let fullscreenEl = null;
+    let preempted = false;
+    Object.defineProperty(document, 'fullscreenElement', {
+      configurable: true,
+      get: () => fullscreenEl,
+    });
+    document.documentElement.requestFullscreen = () => {
+      preempted = true;
+      return Promise.resolve();
+    };
+
+    function gesture(type, el) {
+      preempted = false;
+      el.dispatchEvent(new MouseEvent(type, { bubbles: true, composed: true }));
+      return preempted;
+    }
+
+    function exitFullscreen(el, { teardown }) {
+      messages = [];
+      fullscreenEl = el;
+      document.dispatchEvent(new Event('fullscreenchange'));
+      if (teardown) el.remove();
+      fullscreenEl = null;
+      document.dispatchEvent(new Event('fullscreenchange'));
+      return messages.some((m) => m.type === 'restoreFullscreen');
+    }
+  </script>
+  <script src="../content/player.js"></script>
+  <script>
+    setTimeout(() => {
+      const out = [];
+      const fs = document.getElementById('fs');
+
+      out.push('preempt_on_button=' + gesture('click', fs));
+      out.push(
+        'preempt_on_dblclick=' + gesture('dblclick', document.querySelector('video'))
+      );
+      out.push(
+        'ignores_other_click=' + !gesture('click', document.getElementById('mute'))
+      );
+
+      // un clic alors qu'on est déjà en plein écran = l'utilisateur en sort
+      fullscreenEl = document.documentElement;
+      out.push('ignores_exit_click=' + !gesture('click', fs));
+      fullscreenEl = null;
+
+      const torn = document.createElement('div');
+      document.body.appendChild(torn);
+      out.push('fallback_on_teardown=' + exitFullscreen(torn, { teardown: true }));
+
+      const kept = document.createElement('div');
+      document.body.appendChild(kept);
+      out.push('silent_on_user_exit=' + !exitFullscreen(kept, { teardown: false }));
+
+      chrome.storage.sync.set({ keepFullscreen: false });
+      const off = document.createElement('div');
+      document.body.appendChild(off);
+      out.push(
+        'setting_off=' +
+          (!gesture('click', fs) && !exitFullscreen(off, { teardown: true }))
+      );
+
+      const pre = document.createElement('pre');
+      pre.id = 'result';
+      pre.textContent = out.join(' | ');
+      pre.style.color = out.every((r) => r.endsWith('true')) ? 'green' : 'red';
+      document.body.appendChild(pre);
+    }, 300);
+  </script>
+</body>

@@ -1,6 +1,7 @@
 const DEFAULTS = {
   skipIntro: true,
   skipCredits: true,
+  keepFullscreen: true,
   skipDelayMs: 0,
   showFab: true,
   EXCLUDE_URLS: [],
@@ -65,6 +66,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const data = await storageGet(DEFAULTS);
   const skipIntro = document.getElementById('skipIntro');
   const skipCredits = document.getElementById('skipCredits');
+  const keepFullscreen = document.getElementById('keepFullscreen');
   const skipDelayMs = document.getElementById('skipDelayMs');
   const showFab = document.getElementById('showFab');
   const excludeUrls = document.getElementById('add-url');
@@ -72,6 +74,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   skipIntro.checked = data.skipIntro !== false;
   skipCredits.checked = data.skipCredits !== false;
+  keepFullscreen.checked = data.keepFullscreen !== false;
   skipDelayMs.value = String(Math.max(0, Number(data.skipDelayMs) || 0));
   showFab.checked = data.showFab !== false;
 
@@ -80,6 +83,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
   skipCredits.addEventListener('change', () => {
     storageSet({ skipCredits: skipCredits.checked });
+  });
+
+  keepFullscreen.addEventListener('change', () => {
+    storageSet({ keepFullscreen: keepFullscreen.checked });
   });
 
   showFab.addEventListener('change', () => {
