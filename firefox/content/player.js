@@ -75,6 +75,7 @@
       upper.includes('GENERIQUE') ||
       upper.includes('NEXT-EPISODE') ||
       upper.includes('NEXT EPISODE') ||
+      upper.includes('NEXT UP') ||
       upper.includes('EPISODE SUIVANT')
     );
   }
@@ -94,10 +95,14 @@
   // Its current player hides the button two shadow roots deep
   // (<skip-overlay> → <skip-button> → <button>), out of querySelector's
   // reach; .skip__button is the old light-DOM player.
+  // Prime Video is the same story in plain DOM: skip intro/recap is
+  // .atvwebplayersdk-skipelement-button, the next episode card
+  // .atvwebplayersdk-nextupcard-button, both labelled by their text.
   function listSkipButtons() {
     const out = [];
     const sel =
-      'button[aria-label], button[data-uia], [data-uia][role="button"], button.skip__button';
+      'button[aria-label], button[data-uia], [data-uia][role="button"], button.skip__button, ' +
+      '.atvwebplayersdk-skipelement-button, .atvwebplayersdk-nextupcard-button';
     const candidates = [...document.querySelectorAll(sel)];
     const dpBtn = document
       .querySelector('skip-overlay')

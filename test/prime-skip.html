@@ -1,0 +1,48 @@
+<!doctype html>
+<!--
+  Vérifie que les boutons Prime Video sont cliqués : « Ignorer l'intro »
+  (.atvwebplayersdk-skipelement-button) puis la carte « Épisode suivant »
+  (.atvwebplayersdk-nextupcard-button).
+  Lancer :
+    /Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --headless=new \
+      --disable-gpu --virtual-time-budget=6000 --dump-dom test/prime-skip.html | grep result
+  Attendu : intro_clicked=true | next_clicked=true
+-->
+<meta charset="utf-8" />
+<body>
+  <video></video>
+  <button class="atvwebplayersdk-skipelement-button">Ignorer l'intro</button>
+  <script>
+    window.chrome = {
+      runtime: { getManifest: () => ({ version: 'test' }) },
+      storage: {
+        sync: { get: (defaults, cb) => cb({ ...defaults }), set: () => {} },
+        onChanged: { addListener: () => {} },
+      },
+    };
+    let intro = false;
+    let next = false;
+    const skip = document.querySelector('.atvwebplayersdk-skipelement-button');
+    skip.addEventListener('click', () => {
+      intro = true;
+      skip.remove();
+      // la carte arrive en fin d'épisode, après le cooldown de 2,5 s
+      setTimeout(() => {
+        const card = document.createElement('div');
+        card.className = 'atvwebplayersdk-nextupcard-button';
+        card.textContent = 'Épisode suivant';
+        card.addEventListener('click', () => (next = true));
+        document.body.appendChild(card);
+      }, 2600);
+    });
+  </script>
+  <script src="../content/player.js"></script>
+  <script>
+    setTimeout(() => {
+      const pre = document.createElement('pre');
+      pre.id = 'result';
+      pre.textContent = 'intro_clicked=' + intro + ' | next_clicked=' + next;
+      document.body.appendChild(pre);
+    }, 5000);
+  </script>
+</body>

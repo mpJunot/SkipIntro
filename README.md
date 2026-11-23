@@ -1,7 +1,7 @@
-# SkipIntro v1.2.0
+# SkipIntro v1.3.0
 
 Clique automatiquement « Skip Intro » / « Skip Credits » / « Épisode suivant » sur
-**Crunchyroll**, **Netflix** et **Disney+**.
+**Crunchyroll**, **Netflix**, **Disney+** et **Prime Video**.
 
 ## Installation
 
@@ -17,7 +17,7 @@ celui déjà injecté garde l'ancien code et n'écoute pas les nouvelles options
 elles semblent sans effet. La console de l'onglet dit quelle version tourne :
 
 ```
-[SkipIntro] Ready — v1.2.0 — https://www.netflix.com/watch/…
+[SkipIntro] Ready — v1.3.0 — https://www.netflix.com/watch/…
 ```
 
 ## Options (popup)
@@ -38,7 +38,7 @@ exclusions en un clic ; il se masque depuis le popup, sans recharger la page.
 
 `content/player.js` observe le DOM et lit un libellé sur chaque bouton visible,
 dans cet ordre : `aria-label` (Crunchyroll), `data-uia` (Netflix), puis le texte
-visible du bouton (Disney+). Le libellé est normalisé (accents, majuscules) et
+visible du bouton (Disney+, Prime Video). Le libellé est normalisé (accents, majuscules) et
 classé intro ou générique par mots-clés FR/EN. Pas de branche par plateforme :
 ajouter un service = ajouter son sélecteur et ses hôtes.
 
@@ -46,6 +46,10 @@ Le lecteur Disney+ actuel enterre son bouton deux shadow roots plus bas
 (`<skip-overlay>` → `<skip-button>` → `<button>`), hors de portée de
 `querySelector` : il est récupéré à part dans `listSkipButtons()`.
 `button.skip__button` reste là pour l'ancien lecteur en DOM clair.
+
+Prime Video : `.atvwebplayersdk-skipelement-button` (intro / récap) et
+`.atvwebplayersdk-nextupcard-button` (épisode suivant), libellés lus dans le texte.
+Hôtes : `primevideo.com` et `amazon.{com,fr,co.uk,de,es,it,ca,co.jp}/gp/video/*`.
 
 ### Plein écran
 
@@ -107,7 +111,8 @@ Attendu : `injected=true | visible_default=true | hidden_after_off=true | visibl
 
 `test/fullscreen-keep.html` vérifie la préemption et le repli, et
 `test/disney-skip.html` que le bouton Disney+ caché dans le shadow DOM est bien
-cliqué. Même commande, en changeant le fichier. Attendus :
+cliqué, `test/prime-skip.html` les boutons intro et épisode suivant de Prime Video
+(celui-ci attend le cooldown de 2,5 s : `--virtual-time-budget=6000`). Même commande, en changeant le fichier. Attendus :
 
 ```
 preempt_on_button=true | preempt_on_dblclick=true | ignores_other_click=true |
@@ -115,6 +120,8 @@ ignores_exit_click=true | fallback_on_teardown=true | silent_on_user_exit=true |
 setting_off=true
 
 intro_clicked=true
+
+intro_clicked=true | next_clicked=true
 ```
 
 Le plein écran réel exige un geste utilisateur, hors de portée d'une page
@@ -144,6 +151,8 @@ Accent mint `#34E0A1`, fond `#0B0D10`, surfaces `#14181F` sans bordure, champs
 tracés à 0.12em. Les tokens vivent dans `popup/popup.css`.
 
 ## Versions
+
+**1.3.0** — Prime Video (skip intro / récap, carte épisode suivant).
 
 **1.2.0** — Plein écran conservé au changement d'épisode (préemption du clic sur
 `<html>`, repli fenêtre via service worker), bouton Disney+ retrouvé dans son
