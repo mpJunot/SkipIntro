@@ -30,7 +30,8 @@ elles semblent sans effet. La console de l'onglet dit quelle version tourne :
 | Keep fullscreen between episodes | Empêche la sortie de plein écran au changement d'épisode |
 | Floating exclude button | Affiche ou masque le bouton « + » sur le lecteur |
 | Delay before click | Attente avant le clic, 0–10000 ms |
-| Anime-Sama / Voiranime intro jump | Durée du bouton « +N s », 5–300 s (85 par défaut) |
+| Anime sites · intro jump | Durée du bouton « +N s », 5–300 s (85 par défaut) |
+| Anime sites · next episode before end | Épisode suivant automatique N s avant la fin, 0–600 s (90 par défaut, 0 = à la fin) ; actif avec « Auto skip credits » |
 | Excluded URLs | Pages où l'extension ne fait rien |
 
 Le bouton flottant mint « + » en bas à droite du lecteur ajoute la page courante aux
@@ -88,6 +89,10 @@ pour la page, le script de l'iframe signale chaque mouvement à la page.
   en fin de saison, le lien de saison suivante. Sur Voiranime, le lien dont le
   texte est « Suivant » (aucun `rel` ni classe exploitable), suivi en changeant
   `location.href`.
+- **Épisode suivant automatique** : l'iframe remonte la position de lecture
+  (`timeupdate`, une fois par seconde) ; à 90 s de la fin (réglable), « Suivant »
+  affiche un compte à rebours de 5 s avec « Annuler », puis change d'épisode.
+  Une seule fois par épisode ; revenir en arrière hors du générique l'annule.
 - **Voiranime** n'affiche son lecteur qu'après un captcha : la barre apparaît dès
   qu'il y a une liste d'épisodes (`select#episodes`), sans attendre le lecteur.
 - **Plein écran** : posé sur le parent de l'iframe, qui reçoit aussi la barre ;
@@ -157,7 +162,7 @@ Attendu : `injected=true | visible_default=true | hidden_after_off=true | visibl
 `test/fullscreen-keep.html` vérifie la préemption et le repli, et
 `test/disney-skip.html` que le bouton Disney+ caché dans le shadow DOM est bien
 cliqué, `test/prime-skip.html` les boutons intro et épisode suivant de Prime Video, `test/anime-bar.html` la barre
-Anime-Sama, servi via `http://anime-sama.localhost:8765/` (voir l'en-tête du fichier ; attendu `bar=true | seek=85 | back=75 | next_ep=2 | ads_fired=0`)
+Anime-Sama, servi via `http://anime-sama.localhost:8765/` (voir l'en-tête du fichier ; attendu `bar=true | seek=85 | back=75 | next_ep=2 | ads_fired=0 | countdown=Suivant dans 5 s | auto_next_ep=3`)
 (celui-ci attend le cooldown de 2,5 s : `--virtual-time-budget=6000`). Même commande, en changeant le fichier. Attendus :
 
 ```
@@ -199,7 +204,7 @@ tracés à 0.12em. Les tokens vivent dans `popup/popup.css`.
 ## Versions
 
 **1.4.0** — Barre de contrôle Anime-Sama / Voiranime (intro, −10 s, plein
-écran, épisode suivant) qui ne déclenche pas les pubs ; calque de pub invisible
+écran, épisode suivant, manuel ou automatique avant la fin) qui ne déclenche pas les pubs ; calque de pub invisible
 retiré et onglets de pub refermés sur ces sites.
 
 **1.3.0** — Prime Video (skip intro / récap, carte épisode suivant).

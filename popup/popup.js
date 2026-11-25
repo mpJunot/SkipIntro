@@ -5,6 +5,7 @@ const DEFAULTS = {
   skipDelayMs: 0,
   showFab: true,
   introSkipSec: 85,
+  outroSkipSec: 90,
   EXCLUDE_URLS: [],
 };
 
@@ -71,6 +72,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const skipDelayMs = document.getElementById('skipDelayMs');
   const showFab = document.getElementById('showFab');
   const introSkipSec = document.getElementById('introSkipSec');
+  const outroSkipSec = document.getElementById('outroSkipSec');
   const excludeUrls = document.getElementById('add-url');
   const excludeList = document.getElementById('excludedUrls');
 
@@ -80,6 +82,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   skipDelayMs.value = String(Math.max(0, Number(data.skipDelayMs) || 0));
   showFab.checked = data.showFab !== false;
   introSkipSec.value = String(Number(data.introSkipSec) || 85);
+  outroSkipSec.value = String(Number.isFinite(Number(data.outroSkipSec)) ? Number(data.outroSkipSec) : 90);
 
   skipIntro.addEventListener('change', () => {
     storageSet({ skipIntro: skipIntro.checked });
@@ -108,6 +111,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     const v = Math.min(300, Math.max(5, Number(introSkipSec.value) || 85));
     introSkipSec.value = String(v);
     storageSet({ introSkipSec: v });
+  });
+
+  outroSkipSec.addEventListener('change', () => {
+    const n = Number(outroSkipSec.value);
+    const v = Math.min(600, Math.max(0, Number.isFinite(n) ? n : 90));
+    outroSkipSec.value = String(v);
+    storageSet({ outroSkipSec: v });
   });
 
   excludeUrls.addEventListener('keydown', (e) => {

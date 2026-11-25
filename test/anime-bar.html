@@ -8,9 +8,10 @@
   Lancer :
     python3 -m http.server 8765 &
     /Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --headless=new \
-      --disable-gpu --virtual-time-budget=3000 --dump-dom \
+      --disable-gpu --virtual-time-budget=10000 --dump-dom \
       http://anime-sama.localhost:8765/test/anime-bar.html | grep result
-  Attendu : bar=true | seek=85 | back=75 | next_ep=2 | ads_fired=0
+  Attendu : bar=true | seek=85 | back=75 | next_ep=2 | ads_fired=0 |
+            countdown=Suivant dans 5 s | auto_next_ep=3
 -->
 <meta charset="utf-8" />
 <body>
@@ -45,7 +46,10 @@
     <script>
       const v = document.querySelector('video'); let t = 0;
       Object.defineProperty(v, 'currentTime', { get: () => t, set: (x) => (t = x) });
+      Object.defineProperty(v, 'duration', { get: () => 1400 });
+      Object.defineProperty(v, 'paused', { get: () => false });
       window.now = () => t;
+      window.reachCredits = () => { t = 1350; v.dispatchEvent(new Event('timeupdate')); };
     </script>"></iframe>
   <script>
     setTimeout(() => {
@@ -58,10 +62,20 @@
         btn('next').click();
         setTimeout(() => {
           const back = document.getElementById('playerDF').contentWindow.now();
-          const pre = document.createElement('pre');
-          pre.id = 'result';
-          pre.textContent = `bar=${!!host} | seek=${seek} | back=${back} | next_ep=${ep} | ads_fired=${ads}`;
-          document.body.appendChild(pre);
+          const nextEp = ep;
+          // générique atteint (50 s avant la fin) : compte à rebours puis épisode suivant
+          document.getElementById('playerDF').contentWindow.reachCredits();
+          setTimeout(() => {
+            const countdown = btn('next').textContent;
+            setTimeout(() => {
+              const pre = document.createElement('pre');
+              pre.id = 'result';
+              pre.textContent =
+                `bar=${!!host} | seek=${seek} | back=${back} | next_ep=${nextEp} | ads_fired=${ads} | ` +
+                `countdown=${countdown} | auto_next_ep=${ep}`;
+              document.body.appendChild(pre);
+            }, 6000);
+          }, 200);
         }, 200);
       }, 200);
     }, 800);

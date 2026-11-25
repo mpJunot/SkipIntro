@@ -26,11 +26,20 @@
   // their own domain changes too. ancestorOrigins (Chrome) keeps the relay
   // silent under any other top page; Firefox lacks it, and the relay alone
   // only obeys its direct parent anyway.
-  const SITE = /(^|[./])(anime-sama|voir-?anime)\./;
+  // Anchored on the whole hostname, any TLD (they rotate): anime-sama.to,
+  // v13.voiranime.ws, voir-anime.to; not anime-sama.evil.com.
+  const SITE = /^([a-z0-9-]+\.)*(anime-sama|voir-?anime)\.[a-z]{2,}$/;
+  const isSite = (origin) => {
+    try {
+      return SITE.test(new URL(origin).hostname);
+    } catch (e) {
+      return false;
+    }
+  };
   const top = location.ancestorOrigins
     ? location.ancestorOrigins[location.ancestorOrigins.length - 1] || location.origin
     : location.origin;
-  if (location.ancestorOrigins && !SITE.test(top)) return;
+  if (location.ancestorOrigins && !isSite(top)) return;
 
   // The mouse over the video is inside the player iframe, invisible to the
   // top page, so frames report movement up for the auto-hiding bar. Only
@@ -43,9 +52,27 @@
     () => {
       if (!reportMoves || Date.now() - lastMove < 250) return;
       lastMove = Date.now();
-      window.top.postMessage({ [MSG]: 'move' }, '*');
+      window.top.postMessage({ [MSG]: 'move' }, location.ancestorOrigins ? top : '*');
     },
     { passive: true }
+  );
+
+  // Playback position goes up the same way (once a second), for the automatic
+  // next episode. Media events don't bubble, but they do pass through a
+  // capture listener on the document.
+  let lastTime = 0;
+  document.addEventListener(
+    'timeupdate',
+    (e) => {
+      const v = e.target;
+      if (!reportMoves || !(v instanceof HTMLMediaElement) || Date.now() - lastTime < 1000) return;
+      lastTime = Date.now();
+      window.top.postMessage(
+        { [MSG]: 'time', t: v.currentTime, d: v.duration, paused: v.paused },
+        location.ancestorOrigins ? top : '*'
+      );
+    },
+    true
   );
 
   window.addEventListener('message', (e) => {
@@ -66,9 +93,21 @@
     introSec = Number(v) || 85;
     if (introBtn) introBtn.textContent = `+${introSec} s`;
   }
-  chrome.storage.sync.get({ introSkipSec: 85 }, (d) => setIntroSec(d.introSkipSec));
+  // Automatic next episode: on with "Auto skip credits", outroSec before
+  // the end (0 = when the video ends).
+  let autoNext = true;
+  let outroSec = 90;
+  const setOutroSec = (v) => (outroSec = Number.isFinite(Number(v)) ? Number(v) : 90);
+  chrome.storage.sync.get({ introSkipSec: 85, skipCredits: true, outroSkipSec: 90 }, (d) => {
+    setIntroSec(d.introSkipSec);
+    autoNext = d.skipCredits !== false;
+    setOutroSec(d.outroSkipSec);
+  });
   chrome.storage.onChanged.addListener((c, area) => {
-    if (area === 'sync' && c.introSkipSec) setIntroSec(c.introSkipSec.newValue);
+    if (area !== 'sync') return;
+    if (c.introSkipSec) setIntroSec(c.introSkipSec.newValue);
+    if (c.skipCredits) autoNext = c.skipCredits.newValue !== false;
+    if (c.outroSkipSec) setOutroSec(c.outroSkipSec.newValue);
   });
 
   function playerFrame() {
@@ -110,12 +149,59 @@
     target.requestFullscreen().catch(() => {});
   }
 
+  // 5-second countdown on the "Suivant" button, cancellable. An episode is
+  // only counted down once (cancelled or not), so a last episode with
+  // nowhere to go doesn't loop.
+  // ponytail: any frame may post 'time', so an ad iframe could trigger a
+  // next episode; harmless, and the countdown shows it.
+  let countdown = null;
+  let doneKey = null;
+  let nextBtn = null;
+  let cancelBtn = null;
+
+  function stopCountdown() {
+    clearInterval(countdown);
+    countdown = null;
+    if (nextBtn) nextBtn.textContent = 'Suivant ⏭';
+    if (cancelBtn) cancelBtn.hidden = true;
+  }
+
+  function onTime(t, d, paused) {
+    if (!autoNext || !nextBtn || !(d > 0) || !Number.isFinite(d)) return;
+    const sel = document.getElementById('selectEpisodes');
+    const key = `${location.pathname}|${sel ? sel.selectedIndex : ''}|${Math.round(d)}`;
+    if (d - t > Math.max(outroSec, 1)) {
+      if (countdown) stopCountdown(); // seeked back out of the credits
+      return;
+    }
+    if (countdown || paused || doneKey === key) return;
+    doneKey = key;
+    let n = 5;
+    const tick = () => {
+      if (n === 0) {
+        stopCountdown();
+        nextEpisode();
+        return;
+      }
+      nextBtn.textContent = `Suivant dans ${n} s`;
+      n--;
+    };
+    cancelBtn.hidden = false;
+    tick();
+    countdown = setInterval(tick, 1000);
+    wake();
+  }
+
   const ACTIONS = {
     toggle: () => control('toggle', 0),
     back: () => control('seek', -10),
     intro: () => control('seek', introSec),
     fs: toggleFullscreen,
-    next: nextEpisode,
+    next: () => {
+      stopCountdown();
+      nextEpisode();
+    },
+    cancel: stopCountdown,
   };
 
   let host = null;
@@ -184,7 +270,7 @@
     bar.classList.remove('idle');
     clearTimeout(idleTimer);
     idleTimer = setTimeout(function hide() {
-      if (bar.matches(':hover')) idleTimer = setTimeout(hide, 1000);
+      if (bar.matches(':hover') || countdown) idleTimer = setTimeout(hide, 1000);
       else bar.classList.add('idle');
     }, 2500);
   }
@@ -209,6 +295,7 @@
         button { all: unset; cursor: pointer; padding: 8px 12px; border-radius: 8px;
           font: 600 13px system-ui, sans-serif; color: #F2F4F7; background: #191F29; }
         button:hover { background: #232B38; }
+        button[hidden] { display: none; }
         button[data-act="intro"], button[data-act="next"] { background: #34E0A1; color: #0B0D10; }
       </style>
       <div>
@@ -216,10 +303,13 @@
         <button data-act="toggle" title="Lecture / pause">⏯</button>
         <button data-act="intro" title="Sauter l'intro"></button>
         <button data-act="next" title="Épisode suivant">Suivant ⏭</button>
+        <button data-act="cancel" title="Rester sur cet épisode" hidden>Annuler</button>
         <button data-act="fs" title="Plein écran">⛶</button>
       </div>`;
     bar = root.querySelector('div');
     introBtn = root.querySelector('[data-act="intro"]');
+    nextBtn = root.querySelector('[data-act="next"]');
+    cancelBtn = root.querySelector('[data-act="cancel"]');
     setIntroSec(introSec);
     document.body.appendChild(host);
     document.addEventListener('fullscreenchange', () => {
@@ -230,7 +320,12 @@
     addEventListener('resize', place);
     setInterval(place, 1000); // the site moves the player around (cinema mode, ads)
     addEventListener('mousemove', wake, { passive: true });
-    addEventListener('message', (e) => e.data && e.data[MSG] === 'move' && wake());
+    addEventListener('message', (e) => {
+      const d = e.data;
+      if (!d) return;
+      if (d[MSG] === 'move') wake();
+      if (d[MSG] === 'time') onTime(Number(d.t), Number(d.d), !!d.paused);
+    });
     wake();
   }
 

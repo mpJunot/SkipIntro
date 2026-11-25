@@ -22,7 +22,7 @@ chrome.runtime.onMessage.addListener((msg, sender) => {
 // ponytail: any new web tab those sites open towards another domain is
 // closed, legit external links included; same-site tabs (middle click) and
 // browser pages stay. Check: node test/ad-tabs.mjs
-const ANIME_SITE = /(^|\.)(anime-sama|voir-?anime)\./;
+const ANIME_SITE = /^([a-z0-9-]+\.)*(anime-sama|voir-?anime)\.[a-z]{2,}$/;
 
 function hostOf(url) {
   try {
