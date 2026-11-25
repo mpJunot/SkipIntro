@@ -1,17 +1,18 @@
 <!doctype html>
 <!--
-  Vérifie la barre Anime-Sama : +85 s atteint la vidéo dans l'iframe du lecteur,
-  « Suivant » change d'épisode via le <select>, et aucun clic sur la barre
-  n'arrive aux écouteurs de pub de la page.
+  Vérifie la barre Anime-Sama : ±10 s atteint la vidéo dans l'iframe du lecteur,
+  « Suivant » change d'épisode via le <select> et relance la lecture, le
+  générique déclenche l'épisode suivant, et aucun clic sur la barre n'arrive aux
+  écouteurs de pub de la page.
   Le script ne s'active que sous un domaine anime-sama.* : servir le dépôt et
   passer par anime-sama.localhost (Chrome le résout en local).
   Lancer :
     python3 -m http.server 8765 &
     /Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --headless=new \
-      --disable-gpu --virtual-time-budget=10000 --dump-dom \
+      --disable-gpu --virtual-time-budget=15000 --dump-dom \
       http://anime-sama.localhost:8765/test/anime-bar.html | grep result
-  Attendu : bar=true | seek=85 | back=75 | next_ep=2 | ads_fired=0 |
-            countdown=Suivant dans 5 s | auto_next_ep=3
+  Attendu : bar=true | seek=10 | back=0 | next_ep=2 | played_after_next=true | ads_fired=0 |
+            countdown=⏭ 5 s | auto_next_ep=3 | prev_ep=2 | ads_fired_end=0
 -->
 <meta charset="utf-8" />
 <body>
@@ -47,7 +48,10 @@
       const v = document.querySelector('video'); let t = 0;
       Object.defineProperty(v, 'currentTime', { get: () => t, set: (x) => (t = x) });
       Object.defineProperty(v, 'duration', { get: () => 1400 });
-      Object.defineProperty(v, 'paused', { get: () => false });
+      let playing = false;
+      Object.defineProperty(v, 'paused', { get: () => !playing });
+      v.play = () => { playing = true; return Promise.resolve(); };
+      window.playing = () => playing;
       window.now = () => t;
       window.reachCredits = () => { t = 1350; v.dispatchEvent(new Event('timeupdate')); };
     </script>"></iframe>
@@ -55,28 +59,32 @@
     setTimeout(() => {
       const host = [...document.body.children].find((el) => el.shadowRoot);
       const btn = (act) => host.shadowRoot.querySelector(`[data-act="${act}"]`);
-      btn('intro').click();
+      btn('fwd').click();
       setTimeout(() => {
         const seek = document.getElementById('playerDF').contentWindow.now();
         btn('back').click();
         btn('next').click();
+        const nextEp = ep;
+        // la page relance la lecture du nouvel épisode à partir de 2 s
         setTimeout(() => {
           const back = document.getElementById('playerDF').contentWindow.now();
-          const nextEp = ep;
+          const played = document.getElementById('playerDF').contentWindow.playing();
           // générique atteint (50 s avant la fin) : compte à rebours puis épisode suivant
           document.getElementById('playerDF').contentWindow.reachCredits();
           setTimeout(() => {
             const countdown = btn('next').textContent;
             setTimeout(() => {
+              const autoEp = ep;
+              btn('prev').click();
               const pre = document.createElement('pre');
               pre.id = 'result';
               pre.textContent =
-                `bar=${!!host} | seek=${seek} | back=${back} | next_ep=${nextEp} | ads_fired=${ads} | ` +
-                `countdown=${countdown} | auto_next_ep=${ep}`;
+                `bar=${!!host} | seek=${seek} | back=${back} | next_ep=${nextEp} | played_after_next=${played} | ads_fired=${ads} | ` +
+                `countdown=${countdown} | auto_next_ep=${autoEp} | prev_ep=${ep} | ads_fired_end=${ads}`;
               document.body.appendChild(pre);
             }, 6000);
           }, 200);
-        }, 200);
+        }, 3500);
       }, 200);
     }, 800);
   </script>

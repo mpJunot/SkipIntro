@@ -19,6 +19,7 @@
     if (!v) return broadcast(cmd, by);
     if (cmd === 'seek') v.currentTime = Math.min(v.duration || Infinity, v.currentTime + by);
     if (cmd === 'toggle') v.paused ? v.play() : v.pause();
+    if (cmd === 'play' && v.paused) v.play().catch(() => {});
   }
 
   // ponytail: matched on every site, because Anime-Sama rotates its player
@@ -87,25 +88,17 @@
 
   if (window !== window.top || !SITE.test(location.hostname)) return;
 
-  let introSec = 85;
-  let introBtn = null;
-  function setIntroSec(v) {
-    introSec = Number(v) || 85;
-    if (introBtn) introBtn.textContent = `+${introSec} s`;
-  }
   // Automatic next episode: on with "Auto skip credits", outroSec before
   // the end (0 = when the video ends).
   let autoNext = true;
   let outroSec = 90;
   const setOutroSec = (v) => (outroSec = Number.isFinite(Number(v)) ? Number(v) : 90);
-  chrome.storage.sync.get({ introSkipSec: 85, skipCredits: true, outroSkipSec: 90 }, (d) => {
-    setIntroSec(d.introSkipSec);
+  chrome.storage.sync.get({ skipCredits: true, outroSkipSec: 90 }, (d) => {
     autoNext = d.skipCredits !== false;
     setOutroSec(d.outroSkipSec);
   });
   chrome.storage.onChanged.addListener((c, area) => {
     if (area !== 'sync') return;
-    if (c.introSkipSec) setIntroSec(c.introSkipSec.newValue);
     if (c.skipCredits) autoNext = c.skipCredits.newValue !== false;
     if (c.outroSkipSec) setOutroSec(c.outroSkipSec.newValue);
   });
@@ -137,6 +130,25 @@
     if (a) location.href = a.href;
   }
 
+  // Same two routes backwards: Anime-Sama's prevEp() is selectedIndex--,
+  // Voiranime has a "Precedent" link. No jump to the previous season.
+  function prevEpisode() {
+    const sel = document.getElementById('selectEpisodes');
+    if (sel) {
+      if (sel.selectedIndex > 0) {
+        sel.selectedIndex--;
+        sel.dispatchEvent(new Event('change'));
+      }
+      return;
+    }
+    const a = [...document.querySelectorAll('a[href]')].find(
+      (el) =>
+        el.rel === 'prev' ||
+        /^(pr[eé]c[eé]dent|previous|prev)\b/i.test(el.textContent.trim())
+    );
+    if (a) location.href = a.href;
+  }
+
   // ponytail: fullscreen goes on the iframe's parent, not the iframe, so the
   // bar can follow inside it; Anime-Sama swaps the iframe on episode change
   // but keeps the parent, so fullscreen survives "Suivant".
@@ -159,10 +171,37 @@
   let nextBtn = null;
   let cancelBtn = null;
 
+  // A new episode loads paused. After any episode change, keep asking the
+  // new player to play (once a second, from 2 s in, so the old iframe is
+  // gone) until it reports playing, for 20 s at most. Voiranime reloads the
+  // page, so the request survives in sessionStorage.
+  // ponytail: Chrome only lets an iframe start with sound if the page had a
+  // click; after a Voiranime reload there was none, and play() is refused.
+  const PLAY_KEY = 'skipintro-play-after';
+  let playFrom = 0;
+  try {
+    const at = Number(sessionStorage.getItem(PLAY_KEY));
+    sessionStorage.removeItem(PLAY_KEY);
+    if (Date.now() - at < 30000) playFrom = Date.now();
+  } catch (e) {}
+  setInterval(() => {
+    const since = Date.now() - playFrom;
+    if (playFrom && since > 2000 && since < 20000) control('play', 0);
+  }, 1000);
+
+  function changeEpisode(go) {
+    stopCountdown();
+    playFrom = Date.now();
+    try {
+      sessionStorage.setItem(PLAY_KEY, String(playFrom));
+    } catch (e) {}
+    go();
+  }
+
   function stopCountdown() {
     clearInterval(countdown);
     countdown = null;
-    if (nextBtn) nextBtn.textContent = 'Suivant ⏭';
+    if (nextBtn) nextBtn.textContent = '⏭';
     if (cancelBtn) cancelBtn.hidden = true;
   }
 
@@ -179,11 +218,10 @@
     let n = 5;
     const tick = () => {
       if (n === 0) {
-        stopCountdown();
-        nextEpisode();
+        changeEpisode(nextEpisode);
         return;
       }
-      nextBtn.textContent = `Suivant dans ${n} s`;
+      nextBtn.textContent = `⏭ ${n} s`;
       n--;
     };
     cancelBtn.hidden = false;
@@ -195,13 +233,11 @@
   const ACTIONS = {
     toggle: () => control('toggle', 0),
     back: () => control('seek', -10),
-    intro: () => control('seek', introSec),
+    fwd: () => control('seek', 10),
     fs: toggleFullscreen,
-    next: () => {
-      stopCountdown();
-      nextEpisode();
-    },
+    next: () => changeEpisode(nextEpisode),
     cancel: stopCountdown,
+    prev: () => changeEpisode(prevEpisode),
   };
 
   let host = null;
@@ -289,28 +325,31 @@
     const root = host.attachShadow({ mode: 'open' });
     root.innerHTML = `
       <style>
-        div { display: flex; gap: 6px; padding: 6px; border-radius: 12px; background: #14181Fdd;
+        div { display: flex; gap: 8px; padding: 8px; border-radius: 16px; background: #14181Fdd;
           transition: opacity 0.3s ease; }
         div.idle { opacity: 0; pointer-events: none; }
-        button { all: unset; cursor: pointer; padding: 8px 12px; border-radius: 8px;
-          font: 600 13px system-ui, sans-serif; color: #F2F4F7; background: #191F29; }
+        button { all: unset; cursor: pointer; padding: 11px 16px; border-radius: 10px;
+          font: 600 16px system-ui, sans-serif; color: #F2F4F7; background: #191F29; }
         button:hover { background: #232B38; }
+        /* icon-only buttons: bigger glyph, same height as the text ones */
+        button { line-height: 24px; }
+        button[data-act="prev"], button[data-act="toggle"], button[data-act="next"],
+        button[data-act="fs"] { font-size: 24px; }
         button[hidden] { display: none; }
-        button[data-act="intro"], button[data-act="next"] { background: #34E0A1; color: #0B0D10; }
+        button[data-act="next"], button[data-act="prev"] { background: #34E0A1; color: #0B0D10; }
       </style>
       <div>
+        <button data-act="prev" title="Épisode précédent">⏮</button>
         <button data-act="back" title="Reculer de 10 s">−10 s</button>
         <button data-act="toggle" title="Lecture / pause">⏯</button>
-        <button data-act="intro" title="Sauter l'intro"></button>
-        <button data-act="next" title="Épisode suivant">Suivant ⏭</button>
+        <button data-act="fwd" title="Avancer de 10 s">+10 s</button>
+        <button data-act="next" title="Épisode suivant">⏭</button>
         <button data-act="cancel" title="Rester sur cet épisode" hidden>Annuler</button>
         <button data-act="fs" title="Plein écran">⛶</button>
       </div>`;
     bar = root.querySelector('div');
-    introBtn = root.querySelector('[data-act="intro"]');
     nextBtn = root.querySelector('[data-act="next"]');
     cancelBtn = root.querySelector('[data-act="cancel"]');
-    setIntroSec(introSec);
     document.body.appendChild(host);
     document.addEventListener('fullscreenchange', () => {
       (document.fullscreenElement || document.body).appendChild(host);
@@ -324,7 +363,9 @@
       const d = e.data;
       if (!d) return;
       if (d[MSG] === 'move') wake();
-      if (d[MSG] === 'time') onTime(Number(d.t), Number(d.d), !!d.paused);
+      if (d[MSG] !== 'time') return;
+      if (!d.paused) playFrom = 0; // the new episode is playing
+      onTime(Number(d.t), Number(d.d), !!d.paused);
     });
     wake();
   }

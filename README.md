@@ -30,7 +30,6 @@ elles semblent sans effet. La console de l'onglet dit quelle version tourne :
 | Keep fullscreen between episodes | Empêche la sortie de plein écran au changement d'épisode |
 | Floating exclude button | Affiche ou masque le bouton « + » sur le lecteur |
 | Delay before click | Attente avant le clic, 0–10000 ms |
-| Anime sites · intro jump | Durée du bouton « +N s », 5–300 s (85 par défaut) |
 | Anime sites · next episode before end | Épisode suivant automatique N s avant la fin, 0–600 s (90 par défaut, 0 = à la fin) ; actif avec « Auto skip credits » |
 | Excluded URLs | Pages où l'extension ne fait rien |
 
@@ -59,8 +58,10 @@ Hôtes : `primevideo.com` et `amazon.{com,fr,co.uk,de,es,it,ca,co.jp}/gp/video/*
 Pas de bouton « Skip » à cliquer sur ces sites, et chaque clic sur la page peut
 ouvrir une pub. `content/anime.js` ajoute donc sa propre barre, en haut au centre
 du lecteur (le bas appartient aux sous-titres et aux cartes du lecteur, invisibles
-pour la page) : −10 s, lecture/pause, +85 s (réglable),
-épisode suivant, plein écran. Elle disparaît après 2,5 s sans mouvement de
+pour la page) : épisode précédent, −10 s, lecture/pause, +10 s, épisode suivant,
+plein écran. Après un changement d'épisode, la page demande au nouveau lecteur
+de jouer jusqu'à ce qu'il tourne (20 s max ; Chrome refuse le son sans clic
+préalable, cas d'un rechargement Voiranime). Elle disparaît après 2,5 s sans mouvement de
 souris ; comme la souris sur la vidéo est dans l'iframe du lecteur, invisible
 pour la page, le script de l'iframe signale chaque mouvement à la page.
 
@@ -90,7 +91,7 @@ pour la page, le script de l'iframe signale chaque mouvement à la page.
   texte est « Suivant » (aucun `rel` ni classe exploitable), suivi en changeant
   `location.href`.
 - **Épisode suivant automatique** : l'iframe remonte la position de lecture
-  (`timeupdate`, une fois par seconde) ; à 90 s de la fin (réglable), « Suivant »
+  (`timeupdate`, une fois par seconde) ; à 90 s de la fin (réglable), le bouton ⏭
   affiche un compte à rebours de 5 s avec « Annuler », puis change d'épisode.
   Une seule fois par épisode ; revenir en arrière hors du générique l'annule.
 - **Voiranime** n'affiche son lecteur qu'après un captcha : la barre apparaît dès
@@ -162,7 +163,7 @@ Attendu : `injected=true | visible_default=true | hidden_after_off=true | visibl
 `test/fullscreen-keep.html` vérifie la préemption et le repli, et
 `test/disney-skip.html` que le bouton Disney+ caché dans le shadow DOM est bien
 cliqué, `test/prime-skip.html` les boutons intro et épisode suivant de Prime Video, `test/anime-bar.html` la barre
-Anime-Sama, servi via `http://anime-sama.localhost:8765/` (voir l'en-tête du fichier ; attendu `bar=true | seek=85 | back=75 | next_ep=2 | ads_fired=0 | countdown=Suivant dans 5 s | auto_next_ep=3`)
+Anime-Sama, servi via `http://anime-sama.localhost:8765/` (voir l'en-tête du fichier ; attendu `bar=true | seek=10 | back=0 | next_ep=2 | played_after_next=true | ads_fired=0 | countdown=⏭ 5 s | auto_next_ep=3 | prev_ep=2 | ads_fired_end=0`)
 (celui-ci attend le cooldown de 2,5 s : `--virtual-time-budget=6000`). Même commande, en changeant le fichier. Attendus :
 
 ```
