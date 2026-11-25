@@ -9,7 +9,7 @@
   <body>
     <main class="container">
       <h1><span class="mark">&#9197;</span> SkipIntro</h1>
-      <p class="platforms">Crunchyroll &middot; Netflix &middot; Disney+ &middot; Prime Video</p>
+      <p class="platforms">Crunchyroll &middot; Netflix &middot; Disney+ &middot; Prime Video &middot; Anime-Sama &middot; Voiranime</p>
       <div class="card intro">
         <div class="card-head">
           <h4>Auto skip intro</h4>
@@ -51,6 +51,13 @@
         <div class="field">
           <input type="number" id="skipDelayMs" min="0" max="10000" step="100" />
           <span class="unit">ms</span>
+        </div>
+      </label>
+      <label class="row delay">
+        <span>Anime-Sama / Voiranime intro jump</span>
+        <div class="field">
+          <input type="number" id="introSkipSec" min="5" max="300" step="5" />
+          <span class="unit">s</span>
         </div>
       </label>
       <div class="exclusion">

@@ -3,8 +3,11 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 FF="$ROOT/firefox"
 mkdir -p "$FF/content" "$FF/popup" "$FF/icons" "$FF/background"
-cp "$ROOT/manifest.json" "$FF/manifest.json"
-cp "$ROOT/content/player.js" "$FF/content/player.js"
+# Firefox runs no MV3 service worker: it takes the same file as a background
+# script. Chrome warns on "scripts" under MV3, hence the swap here only.
+sed 's#"service_worker": "background/service-worker.js"#"scripts": ["background/service-worker.js"]#' \
+  "$ROOT/manifest.json" > "$FF/manifest.json"
+cp "$ROOT/content/"*.js "$FF/content/"
 cp "$ROOT/background/service-worker.js" "$FF/background/service-worker.js"
 cp "$ROOT/popup/popup.html" "$FF/popup/popup.html"
 cp "$ROOT/popup/popup.css" "$FF/popup/popup.css"

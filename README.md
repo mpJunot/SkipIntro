@@ -1,7 +1,8 @@
-# SkipIntro v1.3.0
+# SkipIntro v1.4.0
 
 Clique automatiquement « Skip Intro » / « Skip Credits » / « Épisode suivant » sur
-**Crunchyroll**, **Netflix**, **Disney+** et **Prime Video**.
+**Crunchyroll**, **Netflix**, **Disney+** et **Prime Video**, plus une barre de
+contrôle sur **Anime-Sama** et **Voiranime**.
 
 ## Installation
 
@@ -17,7 +18,7 @@ celui déjà injecté garde l'ancien code et n'écoute pas les nouvelles options
 elles semblent sans effet. La console de l'onglet dit quelle version tourne :
 
 ```
-[SkipIntro] Ready — v1.3.0 — https://www.netflix.com/watch/…
+[SkipIntro] Ready — v1.4.0 — https://www.netflix.com/watch/…
 ```
 
 ## Options (popup)
@@ -29,6 +30,7 @@ elles semblent sans effet. La console de l'onglet dit quelle version tourne :
 | Keep fullscreen between episodes | Empêche la sortie de plein écran au changement d'épisode |
 | Floating exclude button | Affiche ou masque le bouton « + » sur le lecteur |
 | Delay before click | Attente avant le clic, 0–10000 ms |
+| Anime-Sama / Voiranime intro jump | Durée du bouton « +N s », 5–300 s (85 par défaut) |
 | Excluded URLs | Pages où l'extension ne fait rien |
 
 Le bouton flottant mint « + » en bas à droite du lecteur ajoute la page courante aux
@@ -50,6 +52,49 @@ Le lecteur Disney+ actuel enterre son bouton deux shadow roots plus bas
 Prime Video : `.atvwebplayersdk-skipelement-button` (intro / récap) et
 `.atvwebplayersdk-nextupcard-button` (épisode suivant), libellés lus dans le texte.
 Hôtes : `primevideo.com` et `amazon.{com,fr,co.uk,de,es,it,ca,co.jp}/gp/video/*`.
+
+### Anime-Sama et Voiranime
+
+Pas de bouton « Skip » à cliquer sur ces sites, et chaque clic sur la page peut
+ouvrir une pub. `content/anime.js` ajoute donc sa propre barre, en haut au centre
+du lecteur (le bas appartient aux sous-titres et aux cartes du lecteur, invisibles
+pour la page) : −10 s, lecture/pause, +85 s (réglable),
+épisode suivant, plein écran. Elle disparaît après 2,5 s sans mouvement de
+souris ; comme la souris sur la vidéo est dans l'iframe du lecteur, invisible
+pour la page, le script de l'iframe signale chaque mouvement à la page.
+
+- **Pas de pub** : le script tourne en `document_start`, avant tout script de la
+  page, et ses écouteurs `window` en capture arrêtent les clics de la barre avant
+  qu'un script de pub ne les voie. Pour les clics sur le site lui-même :
+  - le calque invisible de Voiranime (`div` fixe plein écran, opacité 0.01,
+    rempli d'un lien de pub) est retiré dès qu'il apparaît ;
+  - tout nouvel onglet vers un autre domaine ouvert depuis ces sites est fermé
+    par le service worker (`chrome.tabs.onCreated` + `openerTabId`). Bloquer la
+    popup dans la page (`window.open` → `null`) a été essayé : le script de pub
+    de Voiranime renvoie alors l'onglet en arrière dans l'historique. La fermer
+    après coup, il ne le voit pas.
+    Seuls les onglets web d'un autre domaine et les onglets vides sont visés :
+    le navigateur donne aussi l'onglet courant comme parent à ses propres pages
+    (`chrome://extensions`, `brave://newtab`, options d'une extension), qui
+    doivent rester ouvertes. `node test/ad-tabs.mjs` vérifie la règle.
+- **Vidéo** : elle est dans l'iframe d'un hébergeur tiers ; la barre lui envoie un
+  `postMessage`, relayé d'iframe en iframe jusqu'à la `<video>`. Anime-Sama
+  change d'hébergeur en permanence (ansembed.net, uqload, miroirs voe aux noms
+  aléatoires) : le script est donc injecté dans toutes les iframes, mais le relais
+  ne répond que sous une page `anime-sama.*` / `voiranime.*` (via
+  `location.ancestorOrigins` sur Chrome).
+- **Épisode suivant** : sur Anime-Sama, `selectedIndex++` puis un événement `change`
+  sur `#selectEpisodes`, exactement ce que fait le bouton du site, sans clic ;
+  en fin de saison, le lien de saison suivante. Sur Voiranime, le lien dont le
+  texte est « Suivant » (aucun `rel` ni classe exploitable), suivi en changeant
+  `location.href`.
+- **Voiranime** n'affiche son lecteur qu'après un captcha : la barre apparaît dès
+  qu'il y a une liste d'épisodes (`select#episodes`), sans attendre le lecteur.
+- **Plein écran** : posé sur le parent de l'iframe, qui reçoit aussi la barre ;
+  Anime-Sama remplace l'iframe à chaque épisode mais garde le parent, donc le
+  plein écran tient au « Suivant ».
+
+Ces sites changent souvent de domaine : ils sont reconnus au nom, toutes extensions confondues.
 
 ### Plein écran
 
@@ -111,7 +156,8 @@ Attendu : `injected=true | visible_default=true | hidden_after_off=true | visibl
 
 `test/fullscreen-keep.html` vérifie la préemption et le repli, et
 `test/disney-skip.html` que le bouton Disney+ caché dans le shadow DOM est bien
-cliqué, `test/prime-skip.html` les boutons intro et épisode suivant de Prime Video
+cliqué, `test/prime-skip.html` les boutons intro et épisode suivant de Prime Video, `test/anime-bar.html` la barre
+Anime-Sama, servi via `http://anime-sama.localhost:8765/` (voir l'en-tête du fichier ; attendu `bar=true | seek=85 | back=75 | next_ep=2 | ads_fired=0`)
 (celui-ci attend le cooldown de 2,5 s : `--virtual-time-budget=6000`). Même commande, en changeant le fichier. Attendus :
 
 ```
@@ -151,6 +197,10 @@ Accent mint `#34E0A1`, fond `#0B0D10`, surfaces `#14181F` sans bordure, champs
 tracés à 0.12em. Les tokens vivent dans `popup/popup.css`.
 
 ## Versions
+
+**1.4.0** — Barre de contrôle Anime-Sama / Voiranime (intro, −10 s, plein
+écran, épisode suivant) qui ne déclenche pas les pubs ; calque de pub invisible
+retiré et onglets de pub refermés sur ces sites.
 
 **1.3.0** — Prime Video (skip intro / récap, carte épisode suivant).
 

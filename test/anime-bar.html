@@ -1,0 +1,69 @@
+<!doctype html>
+<!--
+  Vérifie la barre Anime-Sama : +85 s atteint la vidéo dans l'iframe du lecteur,
+  « Suivant » change d'épisode via le <select>, et aucun clic sur la barre
+  n'arrive aux écouteurs de pub de la page.
+  Le script ne s'active que sous un domaine anime-sama.* : servir le dépôt et
+  passer par anime-sama.localhost (Chrome le résout en local).
+  Lancer :
+    python3 -m http.server 8765 &
+    /Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --headless=new \
+      --disable-gpu --virtual-time-budget=3000 --dump-dom \
+      http://anime-sama.localhost:8765/test/anime-bar.html | grep result
+  Attendu : bar=true | seek=85 | back=75 | next_ep=2 | ads_fired=0
+-->
+<meta charset="utf-8" />
+<body>
+  <script>
+    window.chrome = {
+      runtime: { getManifest: () => ({ version: 'test' }) },
+      storage: {
+        sync: { get: (d, cb) => cb({ ...d }), set: () => {} },
+        onChanged: { addListener: () => {} },
+      },
+    };
+  </script>
+  <!-- chargé avant les scripts de la page, comme run_at: document_start -->
+  <script src="../content/anime.js"></script>
+  <script>
+    // pub façon Adcash : écoute tout clic, en capture comme en bulle
+    let ads = 0;
+    ['click', 'mousedown', 'pointerdown'].forEach((t) => {
+      window.addEventListener(t, () => ads++, true);
+      document.addEventListener(t, () => ads++);
+    });
+    let ep = 0;
+  </script>
+  <select id="selectEpisodes" onchange="ep = this.selectedIndex + 1">
+    <option>1</option><option>2</option><option>3</option>
+  </select>
+  <!-- le lecteur tiers : une iframe qui charge aussi anime.js, vidéo stubée -->
+  <iframe id="playerDF" allowfullscreen srcdoc="
+    <script>window.chrome = parent.chrome;</script>
+    <script src='../content/anime.js'></script>
+    <video></video>
+    <script>
+      const v = document.querySelector('video'); let t = 0;
+      Object.defineProperty(v, 'currentTime', { get: () => t, set: (x) => (t = x) });
+      window.now = () => t;
+    </script>"></iframe>
+  <script>
+    setTimeout(() => {
+      const host = [...document.body.children].find((el) => el.shadowRoot);
+      const btn = (act) => host.shadowRoot.querySelector(`[data-act="${act}"]`);
+      btn('intro').click();
+      setTimeout(() => {
+        const seek = document.getElementById('playerDF').contentWindow.now();
+        btn('back').click();
+        btn('next').click();
+        setTimeout(() => {
+          const back = document.getElementById('playerDF').contentWindow.now();
+          const pre = document.createElement('pre');
+          pre.id = 'result';
+          pre.textContent = `bar=${!!host} | seek=${seek} | back=${back} | next_ep=${ep} | ads_fired=${ads}`;
+          document.body.appendChild(pre);
+        }, 200);
+      }, 200);
+    }, 800);
+  </script>
+</body>

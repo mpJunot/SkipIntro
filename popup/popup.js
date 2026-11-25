@@ -4,6 +4,7 @@ const DEFAULTS = {
   keepFullscreen: true,
   skipDelayMs: 0,
   showFab: true,
+  introSkipSec: 85,
   EXCLUDE_URLS: [],
 };
 
@@ -69,6 +70,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const keepFullscreen = document.getElementById('keepFullscreen');
   const skipDelayMs = document.getElementById('skipDelayMs');
   const showFab = document.getElementById('showFab');
+  const introSkipSec = document.getElementById('introSkipSec');
   const excludeUrls = document.getElementById('add-url');
   const excludeList = document.getElementById('excludedUrls');
 
@@ -77,6 +79,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   keepFullscreen.checked = data.keepFullscreen !== false;
   skipDelayMs.value = String(Math.max(0, Number(data.skipDelayMs) || 0));
   showFab.checked = data.showFab !== false;
+  introSkipSec.value = String(Number(data.introSkipSec) || 85);
 
   skipIntro.addEventListener('change', () => {
     storageSet({ skipIntro: skipIntro.checked });
@@ -99,6 +102,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (v > 10000) v = 10000;
     skipDelayMs.value = String(v);
     storageSet({ skipDelayMs: v });
+  });
+
+  introSkipSec.addEventListener('change', () => {
+    const v = Math.min(300, Math.max(5, Number(introSkipSec.value) || 85));
+    introSkipSec.value = String(v);
+    storageSet({ introSkipSec: v });
   });
 
   excludeUrls.addEventListener('keydown', (e) => {
